@@ -59,6 +59,26 @@ git add .claude/skills/python-dev-workflow
 git commit -m "Add python-dev-workflow skill"
 ```
 
+### 方法 C: git clone / submodule（公開リポジトリから直接取得）
+
+このスキルは公開リポジトリとして配布している。clone すれば `git pull` で更新も追従できる。
+
+```bash
+# 個人スキルとして全プロジェクトで使う（~/.claude/skills 配下に clone）
+git clone https://github.com/RYO0115/python-dev-workflow.git ~/.claude/skills/python-dev-workflow
+
+# 更新するとき
+git -C ~/.claude/skills/python-dev-workflow pull
+```
+
+特定プロジェクトに組み込んでチーム共有する場合は submodule にする:
+
+```bash
+# 対象プロジェクトのルートで実行
+git submodule add https://github.com/RYO0115/python-dev-workflow.git .claude/skills/python-dev-workflow
+git commit -m "Add python-dev-workflow skill as submodule"
+```
+
 ### インストールの確認
 
 Claude Code を（再）起動し、対象プロジェクトで次を実行して一覧に表示されれば成功:
