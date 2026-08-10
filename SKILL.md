@@ -46,6 +46,44 @@ Python プロジェクトを実装・拡張・レビューする際に従う共�
 
 > minor を上げると patch はリセット、major を上げると minor・patch はリセットされる。
 
+### `uv.lock` を bump の対象に必ず含める（uv プロジェクト必須）
+
+`uv.lock` は依存だけでなく**自分自身のパッケージの版数**も写している。
+
+```toml
+[[package]]
+name = "<自分のパッケージ名>"
+version = "0.26.6"          # ← pyproject の version と同じ値がここにもある
+```
+
+bump-my-version の `files` に `pyproject.toml` しか書いていないと、bump のたびに
+ロックだけ 1 つ古い版数で取り残される。そして**この取り残しは目に見えない**。
+
+1. bump 直後は `git status` が綺麗なので、誰も気づかない。
+2. 次に `uv run` / `uv sync` が走った瞬間、uv がロックを黙って書き戻す。
+3. その差分は、たまたまそのとき作業していた**まったく無関係な変更のコミットに紛れ込む**
+   （紛れ込まなければ、未追跡のまま次の作業へ持ち越される = コミット漏れ）。
+
+「`uv.lock` のコミット漏れが多発する」「関係ない PR に `uv.lock` の 1 行差分が付く」
+という症状が出たら、まずこれを疑う。`uv add` の付け忘れではなく、bump 設定の穴。
+
+**対処（3 点セット）**
+
+```toml
+# 1. bump の対象にロックも含める（版数の行だけを狙う。regex で 2 行に固定する）
+[[tool.bumpversion.files]]
+filename = "uv.lock"
+regex = true
+search = 'name = "<自分のパッケージ名>"\nversion = "{current_version}"'
+replace = 'name = "<自分のパッケージ名>"\nversion = "{new_version}"'
+```
+
+2. CI の同期は **`uv sync --locked`** にする。素の `uv sync` はロックが古くても黙って
+   書き直して先へ進むため、コミット漏れがあっても CI は緑になり、次の誰かの手元で
+   無関係な差分として現れる。`--locked` なら食い違った時点で落ちる。
+3. `pyproject.toml` の version と `uv.lock` の version の一致を**テストで固定**する
+   （設定の穴が再発したときに、症状ではなく原因の側で落ちるようにする）。
+
 ## 3. アーキテクチャ・ディレクトリ設計
 
 - `core/`（共通基盤: DB接続・ベースモデル・例外など）と `features/`（機能別モジュール）に分ける。
